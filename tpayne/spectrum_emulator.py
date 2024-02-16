@@ -11,16 +11,24 @@ class SpectrumEmulator(Generic[T]):
     def label_names(cls) -> List[str]:
         return []
     
-    @staticmethod
-    def is_in_bounds(parameters: T) -> bool:
-        return True
+    @classproperty
+    def min_parameters(cls) -> T:
+        return np.array([])
+    
+    @classproperty
+    def max_parameters(cls) -> T:
+        return np.array([])
+    
+    @classmethod
+    def is_in_bounds(cls, parameters: T) -> bool:
+        return np.all(parameters >= cls.min_parameters) and np.all(parameters <= cls.max_parameters)
     
     @classproperty
     def default_parameters(cls) -> T:
         return np.array([])
 
-    @staticmethod
-    def to_parameters() -> T:
+    @classmethod
+    def to_parameters(cls) -> T:
         return np.array([])
     
     @classproperty

@@ -1,6 +1,7 @@
 from typing import Callable, List
 from tpayne.exceptions import JAXWarning
 from tpayne.spectrum_emulator import SpectrumEmulator
+import tpayne.tpayne_consts as const
 from tpayne.utils import classproperty
 import warnings
 
@@ -18,16 +19,24 @@ class TPayne(SpectrumEmulator[ArrayLike]):
     def label_names(cls) -> List[str]:
         return []
     
-    @staticmethod
-    def is_in_bounds(parameters: ArrayLike) -> bool:
-        return True
+    @classproperty
+    def min_parameters(cls) -> ArrayLike:
+        return const.MIN_PARAMS
+    
+    @classproperty
+    def max_parameters(cls) -> ArrayLike:
+        return const.MAX_PARAMS
+    
+    @classmethod
+    def is_in_bounds(cls, parameters: ArrayLike) -> bool:
+        return jnp.all(parameters >= const.MIN_PARAMS) and jnp.all(parameters <= const.MAX_PARAMS)
     
     @classproperty
     def default_parameters(cls) -> ArrayLike:
         return jnp.array([])
     
-    @staticmethod
-    def to_parameters() -> ArrayLike:
+    @classmethod
+    def to_parameters(cls) -> ArrayLike:
         return jnp.array([])
     
     @classproperty
