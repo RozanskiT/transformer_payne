@@ -8,32 +8,41 @@ import warnings
 try:
     import jax.numpy as jnp
     from jax.typing import ArrayLike
+    
+    MAX_PARAMS = jnp.array(const.MAX_PARAMS)
+    MIN_PARAMS = jnp.array(const.MIN_PARAMS)
+    SOLAR_PARAMS = jnp.array(const.SOLAR_PARAMS)
+    
 except ImportError:
     import numpy as jnp
-    import numpy.typing as ArrayLike
+    from numpy.typing import ArrayLike
     warnings.warn("Please install JAX to use TPayne.", JAXWarning)
+    
+    MAX_PARAMS = const.MAX_PARAMS
+    MIN_PARAMS = const.MIN_PARAMS
+    SOLAR_PARAMS = const.SOLAR_PARAMS
 
 
 class TPayne(SpectrumEmulator[ArrayLike]):
     @classproperty
     def label_names(cls) -> List[str]:
-        return []
+        return const.LABEL_NAMES
     
     @classproperty
     def min_parameters(cls) -> ArrayLike:
-        return const.MIN_PARAMS
+        return MIN_PARAMS
     
     @classproperty
     def max_parameters(cls) -> ArrayLike:
-        return const.MAX_PARAMS
+        return MAX_PARAMS
     
     @classmethod
     def is_in_bounds(cls, parameters: ArrayLike) -> bool:
         return jnp.all(parameters >= const.MIN_PARAMS) and jnp.all(parameters <= const.MAX_PARAMS)
     
     @classproperty
-    def default_parameters(cls) -> ArrayLike:
-        return jnp.array([])
+    def solar_parameters(cls) -> ArrayLike:
+        return SOLAR_PARAMS
     
     @classmethod
     def to_parameters(cls) -> ArrayLike:

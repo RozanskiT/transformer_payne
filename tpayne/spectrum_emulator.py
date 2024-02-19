@@ -24,7 +24,7 @@ class SpectrumEmulator(Generic[T]):
         return np.all(parameters >= cls.min_parameters) and np.all(parameters <= cls.max_parameters)
     
     @classproperty
-    def default_parameters(cls) -> T:
+    def solar_parameters(cls) -> T:
         return np.array([])
 
     @classmethod
