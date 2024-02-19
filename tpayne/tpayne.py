@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, Dict, List, Union
 from tpayne.exceptions import JAXWarning
 from tpayne.spectrum_emulator import SpectrumEmulator
 import tpayne.tpayne_consts as const
@@ -45,8 +45,21 @@ class TPayne(SpectrumEmulator[ArrayLike]):
         return SOLAR_PARAMS
     
     @classmethod
-    def to_parameters(cls) -> ArrayLike:
-        return jnp.array([])
+    def to_parameters(cls,
+                      logteff: float = const.SOLAR_LOG_TEFF,
+                      logg: float = const.SOLAR_LOGG,
+                      mu: float = 1.0,
+                      abundances: Union[ArrayLike, Dict[str, float]] = const.SOLAR_ABUNDANCES) -> ArrayLike:
+        if isinstance(abundances, dict):
+            abundance_values = jnp.array([abundances.get(element, 0.) for element in const.ELEMENTS])
+        else:
+            abundance_values = abundances
+
+        parameters = jnp.concatenate([jnp.array([logteff, logg, mu]), abundance_values])
+        if not cls.is_in_bounds(parameters):
+            raise ValueError("Parameters are not wihin accepted bounds. Refer to tpayne.tpayne_consts for accepted bounds.")
+        
+        return parameters
     
     @classproperty
     def flux_method(cls) -> Callable[..., ArrayLike]:
