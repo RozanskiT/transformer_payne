@@ -1,4 +1,4 @@
-def download_hf_model(model_name: str):
+def download_hf_model(model_name: str = None):
     """Download a model hosted on HuggingFace
 
     Args:
@@ -21,8 +21,9 @@ def download_hf_model(model_name: str):
             "Please install the `joblib` package to download HuggingFace models"
         )
 
-    REPO_ID = "YOUR_REPO_ID"
-    FILENAME = "sklearn_model.joblib"
+    if model_name is None:
+        REPO_ID = "RozanskiT/transformer_payne"
+        FILENAME = "TransformerPayneIntensities_v1.pkl"
 
     model = joblib.load(
         hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
