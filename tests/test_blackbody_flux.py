@@ -13,3 +13,14 @@ class TestBlackbodyFlux:
 
     def test_is_in_bounds(self, blackbody_flux_instance):
         assert blackbody_flux_instance.is_in_bounds(10000) == True
+
+    def test_to_parameters(self, blackbody_flux_instance):
+        assert np.all(
+            np.isclose(
+                blackbody_flux_instance.to_parameters(10000), np.array([10000])
+                )
+            )
+        
+    def test_to_parameters_out_of_bounds(self, blackbody_flux_instance):
+        with pytest.raises(ValueError):
+            blackbody_flux_instance.to_parameters(-1.0)

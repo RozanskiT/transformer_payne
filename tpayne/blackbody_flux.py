@@ -45,7 +45,8 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         """
         return jnp.array([jnp.inf], dtype=jnp.float32)
     
-    def is_in_bounds(self, parameters: ArrayLike) -> bool:
+    @staticmethod
+    def is_in_bounds(parameters: ArrayLike) -> bool:
         """Check if parameters are within the bounds of the spectrum model
 
         Args:
@@ -66,21 +67,12 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         return jnp.array([5777])
     
     # zrobic zeby sie automatycznie generowaly slowka kluczowe takie jak mamy w labelach
-    @classmethod
-    def to_parameters(self,
-                      teff: float = 5777.0,
-                      logg: float = 4.44,
-                      mu: float = 1.0,
-                      abundances: Union[ArrayLike, Dict[str, float]] = const.SOLAR_ABUNDANCES) -> ArrayLike:
+    @staticmethod
+    def to_parameters(teff: float = 5777.0) -> ArrayLike:
         """Convert passed values to the accepted parameters format
 
         Args:
-            logteff (float, optional): log10(effective temperature) [log(K)]. Defaults to solar log(teff)=3.7617023675414125.
-            logg (float, optional): log10(g) [log(m/s2)]. Defaults to solar logg=4.44.
-            mu (float, optional): [0.0-1.0]. Defaults to 1.0.
-            abundances (Union[ArrayLike, Dict[str, float]], optional): abundances relative to the solar abundance 
-                passed either as an array or dict in the form of {'element name': 0.0} (refer to label names).
-                Defaults to solar abundances (all elements=0.0).
+            teff (float, optional): effective temperature [K]. Defaults to solar teff=5777 K.
 
         Raises:
             ValueError: when the parameters are out of accepted bounds
@@ -88,17 +80,10 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
+        if teff<0.0:
+            raise ValueError("Effective temperature is out of bounds! It must be non-negative")
         
-        if isinstance(abundances, dict):
-            abundance_values = jnp.array([abundances.get(element, 0.) for element in const.ELEMENTS])
-        else:
-            abundance_values = abundances
-
-        parameters = jnp.concatenate([jnp.array([teff, logg, mu]), abundance_values])
-        if not self.is_in_bounds(parameters):
-            raise ValueError("Parameters are not within accepted bounds. Refer to tpayne.tpayne_consts for accepted bounds.")
-        
-        return parameters
+        return jnp.array([teff])
     
     @staticmethod
     def flux(log_wavelengths: ArrayLike, parameters: ArrayLike) -> ArrayLike:
