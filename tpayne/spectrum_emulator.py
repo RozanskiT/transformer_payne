@@ -63,3 +63,9 @@ class SpectrumEmulator(ABC, Generic[T]):
             T:
         """
         raise NotImplementedError
+
+    def print_parameter_bounds(self):
+        print("Parameter bounds:")
+        print("NAME\tMIN\tMAX")
+        for param_name, (p_min, p_max) in zip(self.label_names, zip(self.min_parameters, self.max_parameters)):
+            print(f"{param_name}\t{p_min}\t{p_max}")

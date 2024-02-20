@@ -1,6 +1,6 @@
 import numpy as np
 
-LABEL_NAMES = ['logteff', 'logg', 'mu'] 
+LABEL_NAMES = ['logteff', 'logg', 'mu']
 
 # Labels of 90 elements
 ELEMENTS = [
