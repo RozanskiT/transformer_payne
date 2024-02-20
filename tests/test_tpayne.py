@@ -61,24 +61,28 @@ IN_BOUNDS = np.array([3.7617023675414125, 4.44, 1., 0.0, 0.0, 0.0,
                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
 
 
+@pytest.fixture
+def tpayne_instance():
+    yield TPayne()
+
 class TestTPayne:
-    def test_is_in_bounds_all_under_lower(self):
-        assert TPayne.is_in_bounds(UNDER_LOWER_BOUND) == False
+    def test_is_in_bounds_all_under_lower(self, tpayne_instance):
+        assert tpayne_instance.is_in_bounds(UNDER_LOWER_BOUND) == False
 
-    def test_is_in_bounds_all_over_upper(self):
-        assert TPayne.is_in_bounds(OVER_UPPER_BOUND) == False
+    def test_is_in_bounds_all_over_upper(self, tpayne_instance):
+        assert tpayne_instance.is_in_bounds(OVER_UPPER_BOUND) == False
 
-    def test_is_in_bounds_one_under_lower(self):
-        assert TPayne.is_in_bounds(ONE_UNDER_LOWER_BOUND) == False
+    def test_is_in_bounds_one_under_lower(self, tpayne_instance):
+        assert tpayne_instance.is_in_bounds(ONE_UNDER_LOWER_BOUND) == False
 
-    def test_is_in_bounds_one_over_upper(self):
-        assert TPayne.is_in_bounds(ONE_OVER_UPPER_BOUND) == False
+    def test_is_in_bounds_one_over_upper(self, tpayne_instance):
+        assert tpayne_instance.is_in_bounds(ONE_OVER_UPPER_BOUND) == False
 
-    def test_is_in_bounds(self):
-        assert TPayne.is_in_bounds(IN_BOUNDS) == True
+    def test_is_in_bounds(self, tpayne_instance):
+        assert tpayne_instance.is_in_bounds(IN_BOUNDS) == True
 
-    def test_to_parameters_default_all_default(self):
-        assert np.all(np.isclose(TPayne.to_parameters(),
+    def test_to_parameters_default_all_default(self, tpayne_instance):
+        assert np.all(np.isclose(tpayne_instance.to_parameters(),
                                  np.array([3.7617023675414125, 4.44, 1., 0.0, 0.0, 0.0,
                                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -93,8 +97,8 @@ class TestTPayne:
                                  1e-5)
                       )
 
-    def test_to_parameters_default_abundances_default(self):
-        assert np.all(np.isclose(TPayne.to_parameters(logteff=3.65, logg=4.5, mu=1.0),
+    def test_to_parameters_default_abundances_default(self, tpayne_instance):
+        assert np.all(np.isclose(tpayne_instance.to_parameters(logteff=3.65, logg=4.5, mu=1.0),
                                  np.array([3.65, 4.5, 1., 0.0, 0.0, 0.0,
                                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -109,13 +113,13 @@ class TestTPayne:
                                  1e-5)
                       )
 
-    def test_raise_exception_when_not_in_bounds(self):
+    def test_raise_exception_when_not_in_bounds(self, tpayne_instance):
         with pytest.raises(ValueError):
-            TPayne.to_parameters(logteff=3.2, logg=-4.5, mu=1.0)
+            tpayne_instance.to_parameters(logteff=3.2, logg=-4.5, mu=1.0)
 
-    def test_to_parameters_abundance_array(self):
+    def test_to_parameters_abundance_array(self, tpayne_instance):
         assert np.all(np.isclose(
-            TPayne.to_parameters(logteff=3.65, logg=4.5, mu=1.0,
+            tpayne_instance.to_parameters(logteff=3.65, logg=4.5, mu=1.0,
                                  abundances=np.array(
                                      [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
                                       0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
@@ -140,8 +144,8 @@ class TestTPayne:
                      dtype=np.float32),
         ))
 
-    def test_to_parameters_some_abundances_as_dict(self):
-        assert np.all(np.isclose(TPayne.to_parameters(
+    def test_to_parameters_some_abundances_as_dict(self, tpayne_instance):
+        assert np.all(np.isclose(tpayne_instance.to_parameters(
             logteff=3.65, logg=4.5, mu=1.0,
             abundances={"Be": 0.4, "Pa": 0.3}),
             np.array([3.65, 4.5, 1., 0.0, 0.4, 0.0,
