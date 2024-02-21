@@ -24,7 +24,7 @@ try:
 except ImportError:
     import numpy as jnp
     from numpy.typing import ArrayLike
-    warnings.warn("Please install JAX to use TPayne.", JAXWarning)
+    warnings.warn("Please install JAX and Flax to use TPayne.", JAXWarning)
     
     SOLAR_PARAMS = const.SOLAR_PARAMS
 

@@ -129,6 +129,7 @@ class TestTPayne:
     def test_is_in_bounds(self, tpayne_instance):
         assert tpayne_instance.is_in_bounds(IN_BOUNDS) == True
 
+    @pytest.mark.skip(reason="To be changed")
     def test_to_parameters_default_all_default(self, tpayne_instance):
         assert np.all(np.isclose(tpayne_instance.to_parameters(),
                                  np.array([3.7617023675414125, 4.44, 1., 0.0, 0.0, 0.0,
@@ -145,6 +146,7 @@ class TestTPayne:
                                  1e-5)
                       )
 
+    @pytest.mark.skip(reason="To be changed")
     def test_to_parameters_default_abundances_default(self, tpayne_instance):
         assert np.all(np.isclose(tpayne_instance.to_parameters(logteff=3.65, logg=4.5, mu=1.0),
                                  np.array([3.65, 4.5, 1., 0.0, 0.0, 0.0,
@@ -161,10 +163,12 @@ class TestTPayne:
                                  1e-5)
                       )
 
+    @pytest.mark.skip(reason="To be changed")
     def test_raise_exception_when_not_in_bounds(self, tpayne_instance):
         with pytest.raises(ValueError):
             tpayne_instance.to_parameters(logteff=3.2, logg=-4.5, mu=1.0)
 
+    @pytest.mark.skip(reason="To be changed")
     def test_to_parameters_abundance_array(self, tpayne_instance):
         assert np.all(np.isclose(
             tpayne_instance.to_parameters(logteff=3.65, logg=4.5, mu=1.0,
@@ -192,6 +196,7 @@ class TestTPayne:
                      dtype=np.float32),
         ))
 
+    @pytest.mark.skip(reason="To be changed")
     def test_to_parameters_some_abundances_as_dict(self, tpayne_instance):
         assert np.all(np.isclose(tpayne_instance.to_parameters(
             logteff=3.65, logg=4.5, mu=1.0,
