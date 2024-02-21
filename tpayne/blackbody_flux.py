@@ -19,7 +19,7 @@ k = 1.380649e-16    # Boltzmann constant [erg/K]
 
 class BlackbodyFlux(FluxEmulator[ArrayLike]):
     @property
-    def label_names(self) -> List[str]:
+    def parameter_names(self) -> List[str]:
         """Get labels of spectrum model parameters
 
         Returns:

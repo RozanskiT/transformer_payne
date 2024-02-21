@@ -1,8 +1,12 @@
-def download_hf_model(model_name: str = None):
+from typing import Dict
+from tpayne.architecture_definition import ArchitectureDefinition
+
+def download_hf_model(repository_id: str = None, filename: str = None) -> ArchitectureDefinition:
     """Download a model hosted on HuggingFace
 
     Args:
-        model_name (str): HuggingFace model name
+        repository_id (str): HuggingFace repository name "user/model_name"
+        filename (str): the name of the weights/checkpoint file
 
     Raises:
         ImportError: if huggingface-hub or joblib is not installed
@@ -21,12 +25,8 @@ def download_hf_model(model_name: str = None):
             "Please install the `joblib` package to download HuggingFace models"
         )
 
-    if model_name is None:
-        REPO_ID = "RozanskiT/transformer_payne"
-        FILENAME = "TransformerPayneIntensities_v1.pkl"
-
-    model = joblib.load(
-        hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
+    model_dict = joblib.load(
+        hf_hub_download(repo_id=repository_id, filename=filename)
     )
     
-    return model
+    return ArchitectureDefinition.from_dict_config(model_dict)

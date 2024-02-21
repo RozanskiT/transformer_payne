@@ -1,9 +1,16 @@
-from typing import Callable, Dict, List, Union
+from typing import Dict, List, Union
+from tpayne.architecture_definition import ArchitectureDefinition
+from tpayne.download import download_hf_model
 from tpayne.exceptions import JAXWarning
 from tpayne.intensity_emulator import IntensityEmulator
+from tpayne.configuration import DEFAULT_CACHE_PATH, REPOSITORY_ID_KEY, FILENAME_KEY
 import tpayne.tpayne_consts as const
 from functools import partial
 import warnings
+import os
+
+HF_CONFIG_NAME = "TPAYNE"
+ARCHITECTURE_NAME = "TransformerPayneIntensities"
 
 try:
     import jax.numpy as jnp
@@ -92,25 +99,51 @@ class TransformerPayneModel(nn.Module):
 
 class TPayne(IntensityEmulator[ArrayLike]):
 
-    def __init__(self, model_definition):
-
+    def __init__(self, model_definition: ArchitectureDefinition):
         self.model_definition = model_definition
         # When restoring the state the first thing is to intialize a model
-        if self.model_definition["architecture"] == "TransformerPayneIntensities":
+        if self.model_definition.architecture == ARCHITECTURE_NAME:
             # put architecture parameters in the model
-            self.model = TransformerPayneModel(**self.model_definition["architecture_parameters"])
+            self.model = TransformerPayneModel(**self.model_definition.architecture_parameters)
         else:
-            raise ValueError(f"Architecture {self.model_definition['architecture']} not supported")
+            raise ValueError(f"Architecture {self.model_definition.architecture} not supported")
+        
+    @classmethod
+    def download(cls, cache_path: str = ".cache"):
+        from dataclasses import asdict
+        from tpayne.huggingface_config import HUGGINGFACE_CONFIG
+        
+        
+        hf_config = HUGGINGFACE_CONFIG.get(HF_CONFIG_NAME)
+        repository_id, filename = hf_config.get(REPOSITORY_ID_KEY), hf_config.get(FILENAME_KEY)
+
+        if os.path.isdir(cache_path):
+            if os.path.isdir(os.path.join(cache_path, HF_CONFIG_NAME)):
+                try:
+                    model_architecture = ArchitectureDefinition.from_file(os.path.join(cache_path, HF_CONFIG_NAME, filename))
+                    return cls(model_architecture)
+                except ValueError as e:
+                    warnings.warn(str(e) + " Downloading the model from HuggingFace.")
+        else:
+            warnings.warn("Path " + cache_path + " does not exist. Creating one")
+            os.mkdir(cache_path)
+
+        model_architecture = download_hf_model(repository_id, filename)
+        serialization_path = os.path.join(cache_path, HF_CONFIG_NAME)
+        if not os.path.isdir(serialization_path):
+            os.mkdir(serialization_path)
+        model_architecture.serialize(os.path.join(serialization_path, filename))
+        return cls(model_architecture)
 
 
     @property
-    def label_names(self) -> List[str]:
+    def parameter_names(self) -> List[str]:
         """Get labels of spectrum model parameters
 
         Returns:
             List[str]:
         """
-        return self.model_definition["spectral_parameters"]
+        return self.model_definition.spectral_parameters
     
     @property
     def min_parameters(self) -> ArrayLike:
@@ -119,7 +152,7 @@ class TPayne(IntensityEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
-        return self.model_definition["min_spectral_parameters"]
+        return self.model_definition.min_spectral_parameters
     
     @property
     def max_parameters(self) -> ArrayLike:
@@ -128,7 +161,7 @@ class TPayne(IntensityEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
-        return self.model_definition["max_spectral_parameters"]
+        return self.model_definition.max_spectral_parameters
 
     @property
     def number_of_labels(self) -> int:
@@ -195,6 +228,16 @@ class TPayne(IntensityEmulator[ArrayLike]):
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
     def intensity(self, log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
+        """Calculate the intensity for given wavelengths and mus
+
+        Args:
+            log_wavelengths (ArrayLike): [log(angstrom)]
+            mu (float): cosine of the angle between the star's radius and the line of sight
+            spectral_parameters (ArrayLike): an array of predefined stellar parameters
+
+        Returns:
+            ArrayLike: intensities corresponding to passed wavelengths [erg/cm2/s/angstrom]
+        """
         return _intensity(self, log_wavelengths, mu, spectral_parameters)
 
     def __call__(self, log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:

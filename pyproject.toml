@@ -4,7 +4,7 @@ requires = ["setuptools"]
 name = "TPayne"
 [project.optional-dependencies]
 huggingface = ["huggingace-hub", "joblib"]
-dev = ["pytest~=8.0.0"]
+dev = ["pytest~=8.0.0", "pytest-datadir~=1.5.0"]
 [tool.pytest.ini_options]
 python_classes = ["Test", "Describe"]
 python_functions = ["test_", "it_", "and_", "but_", "they_"]
