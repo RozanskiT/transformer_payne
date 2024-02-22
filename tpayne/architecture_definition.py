@@ -9,6 +9,8 @@ class ArchitectureDefinition:
     spectral_parameters: List[str]
     min_spectral_parameters: List[float]
     max_spectral_parameters: List[float]
+    solar_parameters: List[float]
+    tag: str
 
     @classmethod
     def from_dict_config(cls, model_dict: Dict[str, Any]):
