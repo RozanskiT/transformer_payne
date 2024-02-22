@@ -9,6 +9,9 @@ from functools import partial
 import warnings
 import os
 
+# TODO:
+# add a warning if we are exceeding the parameter space
+
 HF_CONFIG_NAME = "TPAYNE"
 ARCHITECTURE_NAME = "TransformerPayneIntensities"
 
@@ -250,4 +253,4 @@ def _intensity(tp, log_wavelengths, mu, spectral_parameters):
     p_all = jnp.empty(tp.number_of_labels, dtype=jnp.float32)
     p_all = p_all.at[-1].set(mu)
     p_all = p_all.at[:-1].set(spectral_parameters)
-    return tp.model.apply({"params":freeze(tp.model_definition["emulator_weights"])}, (log_wavelengths, p_all), train=False)
+    return tp.model.apply({"params":freeze(tp.model_definition.emulator_weights)}, (log_wavelengths, p_all), train=False)
