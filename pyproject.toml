@@ -1,10 +1,19 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "TPayne"
+name = "transformer_payne"
+version = "0.0.1"
+readme = "README.md"
+
 [project.optional-dependencies]
 huggingface = ["huggingace-hub", "joblib"]
 dev = ["pytest~=8.0.0", "pytest-datadir~=1.5.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
 python_classes = ["Test", "Describe"]
 python_functions = ["test_", "it_", "and_", "but_", "they_"]
