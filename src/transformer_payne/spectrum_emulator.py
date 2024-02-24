@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod, abstractproperty
-from typing import Generic, List, TypeVar
+from typing import Any, Dict, Generic, List, TypeVar
 import numpy as np
 
 
@@ -56,8 +56,11 @@ class SpectrumEmulator(ABC, Generic[T]):
         raise NotImplementedError
 
     @abstractmethod
-    def to_parameters(self) -> T:
+    def to_parameters(self, parameter_values: Dict[str, Any] = None) -> T:
         """Convert passed values to the accepted parameters format
+
+        Args:
+            parameter_values (Dict[str, Any], optional): parameter values in the format of {'parameter_name': value}. Unset parameters will be set to solar values.
 
         Returns:
             T:

@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union
 from transformer_payne.flux_emulator import FluxEmulator
 import transformer_payne.transformer_payne_consts as const
 
@@ -66,13 +66,11 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         """
         return jnp.array([5777])
     
-    # zrobic zeby sie automatycznie generowaly slowka kluczowe takie jak mamy w labelach
-    @staticmethod
-    def to_parameters(teff: float = 5777.0) -> ArrayLike:
+    def to_parameters(self, parameter_values: Dict[str, Any] = None) -> ArrayLike:
         """Convert passed values to the accepted parameters format
 
         Args:
-            teff (float, optional): effective temperature [K]. Defaults to solar teff=5777 K.
+            parameter_values (Dict[str, Any], optional): parameter values in the format of {'parameter_name': value}. Unset parameters will be set to solar values.
 
         Raises:
             ValueError: when the parameters are out of accepted bounds
@@ -80,6 +78,10 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
+        if not parameter_values:
+            return self.solar_parameters
+        
+        teff = parameter_values.get('teff', self.solar_parameters[0])
         if teff<0.0:
             raise ValueError("Effective temperature is out of bounds! It must be non-negative")
         

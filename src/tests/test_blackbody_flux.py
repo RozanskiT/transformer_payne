@@ -17,10 +17,10 @@ class TestBlackbodyFlux:
     def test_to_parameters(self, blackbody_flux_instance):
         assert np.all(
             np.isclose(
-                blackbody_flux_instance.to_parameters(10000), np.array([10000])
+                blackbody_flux_instance.to_parameters(dict(teff=10000)), np.array([10000])
                 )
             )
         
     def test_to_parameters_out_of_bounds(self, blackbody_flux_instance):
         with pytest.raises(ValueError):
-            blackbody_flux_instance.to_parameters(-1.0)
+            blackbody_flux_instance.to_parameters(dict(teff=-1.0))

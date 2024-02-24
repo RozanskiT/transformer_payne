@@ -191,15 +191,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         """Convert passed values to the accepted parameters format
 
         Args:
-            logteff (float, optional): log10(effective temperature) [log(K)]. Defaults to solar log(teff)=3.7617023675414125.
-            logg (float, optional): log10(g) [log(m/s2)]. Defaults to solar logg=4.44.
-            mu (float, optional): [0.0-1.0]. Defaults to 1.0.
-            abundances (Union[ArrayLike, Dict[str, float]], optional): abundances relative to the solar abundance 
-                passed either as an array or dict in the form of {'element name': 0.0} (refer to label names).
-                Defaults to solar abundances (all elements=0.0).
-
-        Raises:
-            ValueError: when the parameters are out of accepted bounds
+            parameter_values (Dict[str, Any], optional): parameter values in the format of {'parameter_name': value}. Unset parameters will be set to solar values.
 
         Returns:
             ArrayLike:
