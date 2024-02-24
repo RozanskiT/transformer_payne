@@ -1,16 +1,12 @@
-from typing import Dict, List, Union
+from typing import Any, Dict, List
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
 from transformer_payne.intensity_emulator import IntensityEmulator
 from transformer_payne.configuration import DEFAULT_CACHE_PATH, REPOSITORY_ID_KEY, FILENAME_KEY
-import transformer_payne.transformer_payne_consts as const
 from functools import partial
 import warnings
 import os
-
-# TODO:
-# add a warning if we are exceeding the parameter space
 
 HF_CONFIG_NAME = "TPAYNE"
 ARCHITECTURE_NAME = "TransformerPayneIntensities"
@@ -22,14 +18,10 @@ try:
     from flax import linen as nn
     from flax.core.frozen_dict import freeze
     
-    SOLAR_PARAMS = jnp.array(const.SOLAR_PARAMS)
-    
 except ImportError:
     import numpy as jnp
     from numpy.typing import ArrayLike
     warnings.warn("Please install JAX and Flax to use TransformerPayne.", JAXWarning)
-    
-    SOLAR_PARAMS = const.SOLAR_PARAMS
 
 def frequency_encoding(x, min_period, max_period, dimension):
     periods = jnp.logspace(jnp.log10(min_period), jnp.log10(max_period), num=dimension)
@@ -193,13 +185,9 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
-        return SOLAR_PARAMS
+        return self.model_definition.solar_parameters
     
-    def to_parameters(self,
-                      logteff: float = 3.7617023675414125,
-                      logg: float = 4.44,
-                      mu: float = 1.0,
-                      abundances: Union[ArrayLike, Dict[str, float]] = const.SOLAR_ABUNDANCES) -> ArrayLike:
+    def to_parameters(self, parameter_values: Dict[str, Any] = None) -> ArrayLike:
         """Convert passed values to the accepted parameters format
 
         Args:
@@ -217,14 +205,13 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
             ArrayLike:
         """
         
-        if isinstance(abundances, dict):
-            abundance_values = jnp.array([abundances.get(element, 0.) for element in const.ELEMENTS])
-        else:
-            abundance_values = abundances
-
-        parameters = jnp.concatenate([jnp.array([logteff, logg, mu]), abundance_values])
+        if not parameter_values:
+            return self.solar_parameters
+        
+        parameters = jnp.array([parameter_values.get(label, self.solar_parameters[i]) for i, label in enumerate(self.parameter_names)])
+        
         if not self.is_in_bounds(parameters):
-            raise ValueError("Parameters are not wihin accepted bounds. Refer to transformer_payne.transformer_payne_consts for accepted bounds.")
+            warnings.warn("Possible exceeding parameter bonds - extrapolating.")
         
         return parameters
 
