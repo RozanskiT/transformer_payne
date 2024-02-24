@@ -1,4 +1,4 @@
-from tpayne.blackbody_flux import BlackbodyFlux
+from transformer_payne.blackbody_flux import BlackbodyFlux
 import numpy as np
 import pytest
 
