@@ -67,5 +67,5 @@ jobs:
     - name: Badges
       run: |
         genbadge coverage -o docs/badges/coverage-badge.svg
-        genbadge pytest -o docs/badges/test.svg
+        genbadge tests -o docs/badges/test.svg
   
