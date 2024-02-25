@@ -1,6 +1,6 @@
 # Transformer Payne
 
-[![Tests](docs/badges/test.svg)](reports/junit/junit.xml) [![Coverage Status](docs/badges/coverage-badge.svg)](reports/coverage/coverage.xml)
+![Python Version](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11-blue) [![Tests](docs/badges/test.svg)](reports/junit/junit.xml) [![Coverage Status](docs/badges/coverage-badge.svg)](reports/coverage/coverage.xml)
 
 ## Installation
 
