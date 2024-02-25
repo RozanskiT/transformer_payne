@@ -38,3 +38,34 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+
+  coverage:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-datadir "genbadge[all]" coverage
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Pytest
+      run: |
+        pytest --junitxml=reports/junit/junit.xml
+    - name: Coverage
+      run: |
+        coverage run -m pytest
+        coverage xml -o reports/coverage/coverage.xml
+    - name: Badges
+      run: |
+        genbadge coverage -o docs/badges/coverage-badge.svg
+        genbadge pytest -o docs/badges/test.svg
+  

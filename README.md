@@ -1,4 +1,6 @@
-# spectral-emulator
+# Transformer Payne
+
+[![Tests](docs/badges/test.svg)](reports/junit/junit.xml) [![Coverage Status](docs/badges/coverage-badge.svg)](reports/coverage/coverage.xml)
 
 ## Installation
 
