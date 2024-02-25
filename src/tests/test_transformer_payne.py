@@ -149,12 +149,12 @@ class TestTransformerPayne:
         1.11      ,  0.23      ,  1.25      ,  1.38      ,  1.64      ,
         1.01      ,  1.13      ,  0.9       ,  2.        ,  0.65      ,
        -5.        , -5.        , -5.        , -5.        , -5.        ,
-       -5.        ,  0.06      , -5.        , -0.52      ,  1.        ], dtype=np.float32),
+       -5.        ,  0.06      , -5.        , -0.52], dtype=np.float32),
                                  1e-5)
                       )
 
     def test_to_parameters_default_abundances_default(self, transformer_payne_instance):
-        assert np.all(np.isclose(transformer_payne_instance.to_parameters(dict(logteff=3.65, logg=4.5, mu=0.9)),
+        assert np.all(np.isclose(transformer_payne_instance.to_parameters(dict(logteff=3.65, logg=4.5)),
                                  np.array([ 3.65,  4.5      ,  1.        , 10.93      ,  1.05      ,
         1.38      ,  2.7       ,  8.39      ,  7.78      ,  8.66      ,
         4.56      ,  7.84      ,  6.17      ,  7.53      ,  6.37      ,
@@ -173,6 +173,6 @@ class TestTransformerPayne:
         1.11      ,  0.23      ,  1.25      ,  1.38      ,  1.64      ,
         1.01      ,  1.13      ,  0.9       ,  2.        ,  0.65      ,
        -5.        , -5.        , -5.        , -5.        , -5.        ,
-       -5.        ,  0.06      , -5.        , -0.52      ,  0.9       ], dtype=np.float32),
+       -5.        ,  0.06      , -5.        , -0.52], dtype=np.float32),
                                  1e-5)
                       )

@@ -141,6 +141,15 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         return self.model_definition.spectral_parameters
     
     @property
+    def stellar_parameter_names(self) -> List[str]:
+        """Get names of stellar parameters (no parameters related to geometry, e.g. mu)
+
+        Returns:
+            List[str]:
+        """
+        return self.model_definition.spectral_parameters[:-1]
+    
+    @property
     def min_parameters(self) -> ArrayLike:
         """Minimum values supported by the spectrum model
 
@@ -150,6 +159,15 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         return self.model_definition.min_spectral_parameters
     
     @property
+    def min_stellar_parameters(self) -> ArrayLike:
+        """Minimum values supported by the spectrum model
+
+        Returns:
+            ArrayLike:
+        """
+        return self.model_definition.min_spectral_parameters[:-1]
+    
+    @property
     def max_parameters(self) -> ArrayLike:
         """Maximum values supported by the spectrum model
 
@@ -157,6 +175,15 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
             ArrayLike:
         """
         return self.model_definition.max_spectral_parameters
+    
+    @property
+    def max_stellar_parameters(self) -> ArrayLike:
+        """Maximum values supported by the spectrum model
+
+        Returns:
+            ArrayLike:
+        """
+        return self.model_definition.max_spectral_parameters[:-1]
 
     @property
     def number_of_labels(self) -> int:
@@ -185,7 +212,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         Returns:
             ArrayLike:
         """
-        return self.model_definition.solar_parameters
+        return self.model_definition.solar_parameters[:-1]
     
     def to_parameters(self, parameter_values: Dict[str, Any] = None) -> ArrayLike:
         """Convert passed values to the accepted parameters format
@@ -200,9 +227,9 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         if not parameter_values:
             return self.solar_parameters
         
-        parameters = jnp.array([parameter_values.get(label, self.solar_parameters[i]) for i, label in enumerate(self.parameter_names)])
+        parameters = jnp.array([parameter_values.get(label, self.solar_parameters[i]) for i, label in enumerate(self.stellar_parameter_names)])
         
-        if not self.is_in_bounds(parameters):
+        if not (jnp.all(parameters >= self.min_stellar_parameters) and jnp.all(parameters <= self.max_stellar_parameters)):
             warnings.warn("Possible exceeding parameter bonds - extrapolating.")
         
         return parameters
@@ -229,8 +256,8 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
-    # p_all = jnp.empty(tp.number_of_labels, dtype=jnp.float32)
-    # p_all = p_all.at[-1].set(mu)
-    # p_all = p_all.at[:-1].set(spectral_parameters)
-    p_all = spectral_parameters
+    p_all = jnp.empty(tp.number_of_labels, dtype=jnp.float32)
+    p_all = p_all.at[-1].set(mu)
+    p_all = p_all.at[:-1].set(spectral_parameters)
+    p_all = (p_all-tp.min_parameters)/(tp.max_parameters-tp.min_parameters)
     return tp.model.apply({"params":freeze(tp.model_definition.emulator_weights)}, (log_wavelengths, p_all), train=False)

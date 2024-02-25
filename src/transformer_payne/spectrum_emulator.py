@@ -9,7 +9,7 @@ T = TypeVar("T")
 class SpectrumEmulator(ABC, Generic[T]):
     @abstractproperty
     def parameter_names(self) -> List[str]:
-        """Get labels of spectrum model parameters
+        """Get labels of model parameters
 
         Returns:
             List[str]:
