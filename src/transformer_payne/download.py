@@ -1,4 +1,3 @@
-from typing import Dict
 from transformer_payne.architecture_definition import ArchitectureDefinition
 
 def download_hf_model(repository_id: str = None, filename: str = None) -> ArchitectureDefinition:

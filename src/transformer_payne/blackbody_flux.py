@@ -1,6 +1,5 @@
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Dict, List
 from transformer_payne.flux_emulator import FluxEmulator
-import transformer_payne.transformer_payne_consts as const
 
 SOLAR_TEFF = 5777 # K
 

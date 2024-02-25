@@ -3,7 +3,7 @@ from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
 from transformer_payne.intensity_emulator import IntensityEmulator
-from transformer_payne.configuration import DEFAULT_CACHE_PATH, REPOSITORY_ID_KEY, FILENAME_KEY
+from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
 import warnings
 import os
@@ -229,7 +229,8 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
-    p_all = jnp.empty(tp.number_of_labels, dtype=jnp.float32)
-    p_all = p_all.at[-1].set(mu)
-    p_all = p_all.at[:-1].set(spectral_parameters)
+    # p_all = jnp.empty(tp.number_of_labels, dtype=jnp.float32)
+    # p_all = p_all.at[-1].set(mu)
+    # p_all = p_all.at[:-1].set(spectral_parameters)
+    p_all = spectral_parameters
     return tp.model.apply({"params":freeze(tp.model_definition.emulator_weights)}, (log_wavelengths, p_all), train=False)
