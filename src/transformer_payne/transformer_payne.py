@@ -5,6 +5,7 @@ from transformer_payne.exceptions import JAXWarning
 from transformer_payne.intensity_emulator import IntensityEmulator
 from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
+from flax import nn
 import warnings
 import os
 
