@@ -1,0 +1,34 @@
+name: Build
+
+on: [release]
+  
+jobs:
+  test-pypi-publish:
+    name: Upload release to TestPyPI
+    runs-on: ubuntu-latest
+    needs: [build, coverage]  # Ensures this runs after your build and test jobs
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')  # Runs for tagged commits only
+    permissions:
+      id-token: write  # Mandatory for trusted publishing
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.11
+
+    - name: Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install build  # Install package building tools
+
+    - name: Build package
+      run: |
+        python -m build  # Build your package
+
+    - name: Publish package distributions to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+      # Authentication handled via OIDC
