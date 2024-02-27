@@ -128,7 +128,6 @@ class TestTransformerPayne:
 
     def test_is_in_bounds(self, transformer_payne_instance):
         relative = transformer_payne_instance.from_relative_parameters(IN_BOUNDS)
-        print(IN_BOUNDS.shape)
         assert transformer_payne_instance.is_in_bounds(relative) == True
 
     def test_to_parameters_default_all_default(self, transformer_payne_instance):
