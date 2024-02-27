@@ -7,6 +7,7 @@ from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
 import warnings
 import os
+import numpy as np
 
 HF_CONFIG_NAME = "TPAYNE"
 ARCHITECTURE_NAME = "TransformerPayneIntensities"
@@ -203,7 +204,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         Returns:
             bool:
         """
-        return jnp.all(parameters >= self.min_parameters) and jnp.all(parameters <= self.max_parameters)
+        return jnp.all(parameters >= self.min_parameters[:-1]) and jnp.all(parameters <= self.max_parameters[:-1])
     
     @property
     def solar_parameters(self) -> ArrayLike:
@@ -229,7 +230,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
             return self.solar_parameters
         
         # Initialize parameters with solar values
-        parameters = jnp.array(self.solar_parameters)
+        parameters = np.array(self.solar_parameters)
 
         if parameter_values:
             # Convert parameter names to indices for direct access
