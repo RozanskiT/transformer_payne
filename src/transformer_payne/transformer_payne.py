@@ -287,6 +287,6 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
-    p_all = jnp.concatenate([spectral_parameters, mu], axis=0)
+    p_all = jnp.concatenate([spectral_parameters, jnp.atleast_1d(mu)], axis=0)
     p_all = (p_all-tp.min_parameters)/(tp.max_parameters-tp.min_parameters)
     return tp.model.apply({"params":freeze(tp.model_definition.emulator_weights)}, (log_wavelengths, p_all), train=False)
