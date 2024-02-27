@@ -23,7 +23,7 @@ UNDER_LOWER_BOUND = np.array([ 2.60205999,  1.        , -1.        , -1.3       
        -3.8       , -3.8       , -3.8       , -3.8       , -3.8       ,
        -3.8       , -3.8       , -3.8       , -3.8       , -3.8       ,
        -3.8       , -3.8       , -3.8       , -3.8       , -3.8       ,
-       -3.8       , -3.8       , -3.8       , -3.8       , -1.        ],
+       -3.8       , -3.8       , -3.8       , -3.8       ],
                              dtype=np.float32)
 
 OVER_UPPER_BOUND = np.array([4.90308999, 6.        , 6.        , 1.3       , 2.3       ,
@@ -44,7 +44,7 @@ OVER_UPPER_BOUND = np.array([4.90308999, 6.        , 6.        , 1.3       , 2.3
        2.3       , 2.3       , 2.3       , 2.3       , 2.3       ,
        2.3       , 2.3       , 2.3       , 2.3       , 2.3       ,
        2.3       , 2.3       , 2.3       , 2.3       , 2.3       ,
-       2.3       , 2.3       , 2.3       , 2.3       , 2.        ],
+       2.3       , 2.3       , 2.3       , 2.3       ],
                             dtype=np.float32)
 
 ONE_UNDER_LOWER_BOUND = np.array([ 3.40205999,  2.        ,  0.        , -0.3       , -2.8       ,
@@ -65,7 +65,7 @@ ONE_UNDER_LOWER_BOUND = np.array([ 3.40205999,  2.        ,  0.        , -0.3   
        -2.8       , -2.8       , -2.8       , -2.8       , -2.8       ,
        -2.8       , -2.8       , -2.8       , -2.8       , -2.8       ,
        -2.8       , -2.8       , -2.8       , -2.8       , -2.8       ,
-       -2.8       , -2.8       , -2.8       , -2.8       ,  0.        ], dtype=np.float32)
+       -2.8       , -2.8       , -2.8       , -2.8       ], dtype=np.float32)
 
 ONE_OVER_UPPER_BOUND = np.array([3.90308999, 5.        , 5.        , 0.3       , 1.3       ,
        1.3       , 1.3       , 2.3       , 1.3       , 2.3       ,
@@ -85,7 +85,7 @@ ONE_OVER_UPPER_BOUND = np.array([3.90308999, 5.        , 5.        , 0.3       ,
        1.3       , 1.3       , 1.3       , 1.3       , 1.3       ,
        1.3       , 1.3       , 1.3       , 1.3       , 1.3       ,
        1.3       , 1.3       , 1.3       , 1.3       , 1.3       ,
-       1.3       , 1.3       , 1.3       , 1.3       , 1.        ], dtype=np.float32)
+       1.3       , 1.3       , 1.3       , 1.3       ], dtype=np.float32)
 
 IN_BOUNDS = np.array([ 3.75257499,  3.5       ,  2.5       ,  0.        , -0.75      ,
        -0.75      , -0.75      , -0.75      , -0.75      , -0.75      ,
@@ -105,7 +105,7 @@ IN_BOUNDS = np.array([ 3.75257499,  3.5       ,  2.5       ,  0.        , -0.75 
        -0.75      , -0.75      , -0.75      , -0.75      , -0.75      ,
        -0.75      , -0.75      , -0.75      , -0.75      , -0.75      ,
        -0.75      , -0.75      , -0.75      , -0.75      , -0.75      ,
-       -0.75      , -0.75      , -0.75      , -0.75      ,  0.5       ], dtype=np.float32)
+       -0.75      , -0.75      , -0.75      , -0.75      ], dtype=np.float32)
 
 
 @pytest.fixture
@@ -127,7 +127,8 @@ class TestTransformerPayne:
         assert transformer_payne_instance.is_in_bounds(ONE_OVER_UPPER_BOUND) == False
 
     def test_is_in_bounds(self, transformer_payne_instance):
-        assert transformer_payne_instance.is_in_bounds(IN_BOUNDS) == True
+        relative = transformer_payne_instance.from_relative_parameters(IN_BOUNDS)
+        assert transformer_payne_instance.is_in_bounds(relative) == True
 
     def test_to_parameters_default_all_default(self, transformer_payne_instance):
         assert np.all(np.isclose(transformer_payne_instance.to_parameters(),

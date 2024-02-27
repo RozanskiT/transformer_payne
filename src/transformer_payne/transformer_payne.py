@@ -7,6 +7,7 @@ from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
 import warnings
 import os
+import numpy as np
 
 HF_CONFIG_NAME = "TPAYNE"
 ARCHITECTURE_NAME = "TransformerPayneIntensities"
@@ -203,7 +204,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         Returns:
             bool:
         """
-        return jnp.all(parameters >= self.min_parameters) and jnp.all(parameters <= self.max_parameters)
+        return jnp.all(parameters >= self.min_parameters[:-1]) and jnp.all(parameters <= self.max_parameters[:-1])
     
     @property
     def solar_parameters(self) -> ArrayLike:
@@ -214,11 +215,12 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         """
         return self.model_definition.solar_parameters[:-1]
     
-    def to_parameters(self, parameter_values: Dict[str, Any] = None) -> ArrayLike:
+    def to_parameters(self, parameter_values: Dict[str, Any] = None, relative: bool = True) -> ArrayLike:
         """Convert passed values to the accepted parameters format
 
         Args:
             parameter_values (Dict[str, Any], optional): parameter values in the format of {'parameter_name': value}. Unset parameters will be set to solar values.
+            relative (bool, optional): if True, the values are treated as relative to the solar values for the abundaces 
 
         Returns:
             ArrayLike:
@@ -227,12 +229,41 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         if not parameter_values:
             return self.solar_parameters
         
-        parameters = jnp.array([parameter_values.get(label, self.solar_parameters[i]) for i, label in enumerate(self.stellar_parameter_names)])
+        # Initialize parameters with solar values
+        parameters = np.array(self.solar_parameters)
+
+        if parameter_values:
+            # Convert parameter names to indices for direct access
+            parameter_indices = {label: i for i, label in enumerate(self.stellar_parameter_names)}
+            
+            for label, value in parameter_values.items():
+                # Get the index of the parameter
+                idx = parameter_indices[label]
+                
+                # Adjust the value if relative is True and it's an abundance parameter
+                if relative and self.model_definition.abundance_parameters[idx]:
+                    parameters[idx] = value + self.solar_parameters[idx]
+                else:
+                    # Directly set the value if not relative or not an abundance parameter
+                    parameters[idx] = value
         
         if not (jnp.all(parameters >= self.min_stellar_parameters) and jnp.all(parameters <= self.max_stellar_parameters)):
             warnings.warn("Possible exceeding parameter bonds - extrapolating.")
         
         return parameters
+
+    def from_relative_parameters(self, relative_parameters: ArrayLike) -> ArrayLike:
+        """Convert relative parameters to the accepted parameters format
+
+        Args:
+            relative_parameters (ArrayLike): relative parameter values
+
+        Returns:
+            ArrayLike: absolute parameter values
+        """
+        # just copy not abundances and increase abundances with solar values, vectorised numpy
+        return jnp.where(self.model_definition.abundance_parameters[:-1], relative_parameters + self.solar_parameters, relative_parameters)
+
 
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
@@ -256,6 +287,6 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
-    p_all = jnp.concatenate([spectral_parameters, mu], axis=0)
+    p_all = jnp.concatenate([spectral_parameters, jnp.atleast_1d(mu)], axis=0)
     p_all = (p_all-tp.min_parameters)/(tp.max_parameters-tp.min_parameters)
     return tp.model.apply({"params":freeze(tp.model_definition.emulator_weights)}, (log_wavelengths, p_all), train=False)
