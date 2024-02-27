@@ -10,6 +10,7 @@ class ArchitectureDefinition:
     min_spectral_parameters: List[float]
     max_spectral_parameters: List[float]
     solar_parameters: List[float]
+    abundance_parameters: List[float]
     tag: str
 
     @classmethod
