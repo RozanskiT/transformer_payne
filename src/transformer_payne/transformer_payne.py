@@ -229,7 +229,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
             return self.solar_parameters
         
         # Initialize parameters with solar values
-        parameters = np.array(self.solar_parameters)
+        parameters = jnp.array(self.solar_parameters)
 
         if parameter_values:
             # Convert parameter names to indices for direct access
