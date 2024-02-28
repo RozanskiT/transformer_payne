@@ -131,6 +131,16 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         model_architecture.serialize(os.path.join(serialization_path, filename))
         return cls(model_architecture)
 
+    @classmethod
+    def from_file(cls, filepath: str):
+        if os.path.isfile(filepath):
+            try:
+                model_architecture = ArchitectureDefinition.from_file(filepath)
+                return cls(model_architecture)
+            except ValueError as e:
+                warnings.warn(str(e) + " Model is corrupted. Try downloading the model from HuggingFace using TransformerPayne.download()")
+        else:
+            warnings.warn("File " + filepath + " does not exist. Try downloading the model from HuggingFace using TransformerPayne.download()")
 
     @property
     def parameter_names(self) -> List[str]:
@@ -276,7 +286,7 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
             spectral_parameters (ArrayLike): an array of predefined stellar parameters
 
         Returns:
-            ArrayLike: intensities corresponding to passed wavelengths [erg/cm2/s/angstrom]
+            ArrayLike: monochromatic intensities corresponding to passed wavelengths [erg/s/cm3/angstrom]
         """
         return _intensity(self, log_wavelengths, mu, spectral_parameters)
 

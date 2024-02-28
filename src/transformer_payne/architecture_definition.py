@@ -23,15 +23,14 @@ class ArchitectureDefinition:
     
     @classmethod
     def from_file(cls, filename: str):
-        import json
+        import joblib
         import os
 
         if not os.path.isfile(filename):
             raise ValueError("File " + filename + " does not exist!")
         try:
-            with open(filename, "r") as f:
-                model_dict = json.load(f)
-                return cls.from_dict_config(model_dict)
+            model_dict = joblib.load(filename)
+            return cls.from_dict_config(model_dict)
         except IOError:
             raise ValueError("File " + filename + " is corrupted!")
 

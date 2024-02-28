@@ -87,7 +87,7 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         return jnp.array([teff])
     
     @staticmethod
-    def flux(log_wavelengths: ArrayLike, parameters: ArrayLike) -> ArrayLike:
+    def flux(log_wavelengths: ArrayLike, spectral_parameters: ArrayLike) -> ArrayLike:
         """Compute the blackbody flux.
 
         Args:
@@ -95,15 +95,31 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
             parameters (ArrayLike): Array of parameters. In this case, only one element is used which represents the temperature in Kelvin.
 
         Returns:
-            ArrayLike: Array of blackbody fluxes in erg/s/cm2/A
+            ArrayLike: Array of blackbody monochromatic fluxes in erg/s/cm3
+        """
+        
+        return jnp.pi * BlackbodyFlux.intensity(log_wavelengths, None, spectral_parameters)
+
+    @staticmethod
+    def intensity(log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
+        """Calculate the intensity for given wavelengths and mus
+
+        Args:
+            log_wavelengths (ArrayLike): [log(angstrom)]
+            mu (float): cosine of the angle between the star's radius and the line of sight. As the blackbody radiation field is isotropic, this parameter is not used.
+            spectral_parameters (ArrayLike): an array of predefined stellar parameters. In this case, only one element is used which represents the temperature in Kelvin.
+
+        Returns:
+            ArrayLike: monochromatic intensities corresponding to passed wavelengths [erg/s/cm3/steradian]
         """
         # Convert log wavelength from angstroms to cm
         wave_cm = 10 ** (log_wavelengths - 8)  # 1 Angstrom = 1e-8 cm
 
         # Extract temperature from parameters
-        T = parameters[0]
+        spectral_parameters = jnp.atleast_1d(spectral_parameters)
+        T = spectral_parameters[0]
 
         # Compute blackbody intensity
-        intensity = ((2 * h * c ** 2 / wave_cm ** 5 * 1 / (jnp.exp(h * c / (wave_cm * k * T)) - 1)))*1e-8
+        intensity = ((2 * h * c ** 2 / wave_cm ** 5 * 1 / (jnp.exp(h * c / (wave_cm * k * T)) - 1)))
 
         return intensity
