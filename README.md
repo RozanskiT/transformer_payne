@@ -18,7 +18,7 @@ emulator = tp.TransformerPayne.download() # Download weights for default emulato
 
 wave = np.linspace(4800, 4900, 10000)
 mu = 1.0 # Ray perpendicular to solar surface
-parameters = emulator.solar_parameters # Pick solar parameters and aboundances
+parameters = emulator.solar_parameters # Pick solar parameters and abundances
 
 spectrum = emulator(np.log10(wave), mu, parameters) # Emulate a spectrum
 ```
