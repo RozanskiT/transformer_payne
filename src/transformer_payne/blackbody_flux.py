@@ -122,4 +122,4 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
         # Compute blackbody intensity
         intensity = ((2 * h * c ** 2 / wave_cm ** 5 * 1 / (jnp.exp(h * c / (wave_cm * k * T)) - 1)))
 
-        return intensity
+        return intensity[:, jnp.newaxis].repeat(2, axis=1)
