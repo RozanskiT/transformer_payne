@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
@@ -274,6 +274,80 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
         # just copy not abundances and increase abundances with solar values, vectorised numpy
         return jnp.where(self.model_definition.abundance_parameters[:-1], relative_parameters + self.solar_parameters, relative_parameters)
 
+    def set_group_of_abundances_relative_to_solar(self, 
+                                                    parameters: ArrayLike,
+                                                    value: float,
+                                                    group: List[str]) -> ArrayLike:
+        """Update a group of abundance parameters relative to the solar values
+
+        Args:
+            parameters (ArrayLike): current parameters
+            value (float): value to set for the group
+            group (List[str]): list of parameter names to update
+
+        Returns:
+            ArrayLike: updated parameters
+        """
+        parameters = parameters.copy()
+        # Convert parameter names to indices for direct access
+        parameter_indices = {label: i for i, label in enumerate(self.stellar_parameter_names)}
+        
+        for label in group:
+            # Get the index of the parameter
+            idx = parameter_indices.get(label, None)
+            if idx is not None:
+                # Set the value if it's an abundance parameter
+                if self.model_definition.abundance_parameters[idx]:
+                    parameters[idx] = value + self.solar_parameters[idx]
+            else:
+                warnings.warn(f"Parameter {label} not found in the model definition")
+        
+        return parameters
+
+    def set_abundances_relative_to_arbitrary_element(
+        self, 
+        parameters: ArrayLike, 
+        value: float, 
+        set_element: Union[str, List[str]], 
+        reference_element: str = "Fe"
+    ) -> ArrayLike:
+        """Update a group of abundance parameters relative to the solar ratios
+
+        Args:
+            parameters (ArrayLike): current parameters
+            value (float): value to set for the element(s)
+            set_element (Union[str, List[str]]): element(s) to set the abundance for
+            reference_element (str, optional): element to set the abundance relative to. Defaults to "Fe".
+
+        Returns:
+            ArrayLike: updated parameters
+        """
+        parameters = parameters.copy()
+        # Ensure set_element is always a list for uniform processing
+        if isinstance(set_element, str):
+            set_element = [set_element]
+
+        # Convert parameter names to indices for direct access
+        parameter_indices = {label: i for i, label in enumerate(self.stellar_parameter_names)}
+
+        # Get the index of the reference parameter
+        idx_reference = parameter_indices.get(reference_element, None)
+        if idx_reference is None or not self.model_definition.abundance_parameters[idx_reference]:
+            warnings.warn(f"Reference parameter {reference_element} not an abundance parameter or not found in the model definition")
+            return parameters
+
+        # Iterate over each element in the set_element list
+        for elem in set_element:
+            idx_set = parameter_indices.get(elem, None)
+            if idx_set is not None and self.model_definition.abundance_parameters[idx_set]:
+                # Apply the abundance adjustment logic
+                solar_relative = self.solar_parameters[idx_set] - self.solar_parameters[idx_reference]
+                current_ref = parameters[idx_reference]
+                parameters[idx_set] = current_ref + solar_relative + value
+            else:
+                warnings.warn(f"Parameter {elem} not an abundance parameter or not found in the model definition")
+
+        return parameters
 
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
