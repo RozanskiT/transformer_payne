@@ -31,9 +31,14 @@ jobs:
         pip install build
     - name: Build package
       run: python -m build
-
-    - name: Publish package distributions to TestPyPI
+    - name: Publish package to TestPyPI for alpha and beta releases
+      if: contains(github.ref, '-alpha') || contains(github.ref, '-beta')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         repository-url: https://test.pypi.org/legacy/
+      # Authentication handled via OIDC
+    - name: Publish package to PyPI for stable releases
+      if: '!contains(github.ref, "-alpha") && !contains(github.ref, "-beta")'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # The default target is PyPI
       # Authentication handled via OIDC
