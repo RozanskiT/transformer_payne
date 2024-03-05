@@ -47,6 +47,14 @@ plt.show()
 
 ## Installation
 
+### Installation using pip
+
+Install transformer-payne with `huggingface-hub` and `joblib` modules that allow you to easily download the model weights from the internat.
+
+```
+pip install transformer-payne[huggingface]
+```
+
 ### Developer installation from local repository
 
 ```
