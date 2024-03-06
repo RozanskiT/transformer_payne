@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-huggingface = ["huggingace-hub~=0.20.3"]
+huggingface = ["huggingace-hub~=0.21.3"]
 dev = ["pytest~=8.0.0", "pytest-datadir~=1.5.0", "coverage~=7.4.3"]
 
 [tool.setuptools.dynamic]
