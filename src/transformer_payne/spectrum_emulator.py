@@ -7,6 +7,33 @@ T = TypeVar("T")
 
 
 class SpectrumEmulator(ABC, Generic[T]):
+    @abstractmethod
+    def stellar_parameter_names(self) -> T:
+        """Get labels of stellar parameters (no geometry-related parameters, e.g. mu)
+
+        Returns:
+            T:
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def min_stellar_parameters(self) -> T:
+        """Get minimum values of stellar parameters (no geometry-related parameters, e.g. mu)
+
+        Returns:
+            T:
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def max_stellar_parameters(self) -> T:
+        """Get minimum values of stellar parameters (no geometry-related parameters, e.g. mu)
+
+        Returns:
+            T:
+        """
+        raise NotImplementedError
+
     @abstractproperty
     def parameter_names(self) -> List[str]:
         """Get labels of model parameters
@@ -72,3 +99,21 @@ class SpectrumEmulator(ABC, Generic[T]):
         print("NAME\tMIN\tMAX")
         for param_name, (p_min, p_max) in zip(self.parameter_names, zip(self.min_parameters, self.max_parameters)):
             print(f"{param_name}\t{p_min:.4f}\t{p_max:.4f}")
+            
+    @abstractmethod
+    def flux(self, log_wavelengths: T, parameters: T) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
+    def intensity(self, log_wavelengths: T, mu: float, parameters: T) -> T:
+        """Calculate the intensity for given wavelengths and mus
+
+        Args:
+            log_wavelengths (T): [log(angstrom)]
+            mu (float): cosine of the angle between the star's radius and the line of sight
+            spectral_parameters (T): an array of predefined stellar parameters
+
+        Returns:
+            T: intensities corresponding to passed wavelengths [erg/cm2/s/angstrom]
+        """
+        raise NotImplementedError

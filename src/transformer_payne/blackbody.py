@@ -1,5 +1,12 @@
+from _collections_abc import Buffer
 from typing import Any, Dict, List
-from transformer_payne.flux_emulator import FluxEmulator
+
+from jax._src.basearray import Array
+from numpy import bool_, dtype, ndarray, number
+from numpy._typing._array_like import _SupportsArray
+from numpy._typing._nested_sequence import _NestedSequence
+from transformer_payne.spectrum_emulator import SpectrumEmulator
+from transformer_payne.integration import integrate_intensity
 
 SOLAR_TEFF = 5777 # K
 
@@ -16,7 +23,7 @@ c = 2.99792458e10   # Speed of light [cm/s]
 k = 1.380649e-16    # Boltzmann constant [erg/K]
 
 
-class BlackbodyFlux(FluxEmulator[ArrayLike]):
+class Blackbody(SpectrumEmulator[ArrayLike]):
     @property
     def parameter_names(self) -> List[str]:
         """Get labels of spectrum model parameters
@@ -43,6 +50,18 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
             ArrayLike:
         """
         return jnp.array([jnp.inf], dtype=jnp.float32)
+    
+    @property
+    def stellar_parameter_names(self) -> ArrayLike:
+        return self.parameter_names()
+    
+    @property
+    def min_stellar_parameters(self) -> ArrayLike:
+        return self.min_stellar_parameters()
+    
+    @property
+    def max_stellar_parameters(self) -> ArrayLike:
+        return self.max_stellar_parameters()
     
     @staticmethod
     def is_in_bounds(parameters: ArrayLike) -> bool:
@@ -98,7 +117,7 @@ class BlackbodyFlux(FluxEmulator[ArrayLike]):
             ArrayLike: Array of blackbody monochromatic fluxes in erg/s/cm3
         """
         
-        return jnp.pi * BlackbodyFlux.intensity(log_wavelengths, None, spectral_parameters)
+        return jnp.pi * Blackbody.intensity(log_wavelengths, None, spectral_parameters)
 
     @staticmethod
     def intensity(log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
