@@ -1,12 +1,6 @@
-from _collections_abc import Buffer
 from typing import Any, Dict, List
 
-from jax._src.basearray import Array
-from numpy import bool_, dtype, ndarray, number
-from numpy._typing._array_like import _SupportsArray
-from numpy._typing._nested_sequence import _NestedSequence
 from transformer_payne.spectrum_emulator import SpectrumEmulator
-from transformer_payne.integration import integrate_intensity
 
 SOLAR_TEFF = 5777 # K
 

@@ -4,7 +4,6 @@ from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
 from transformer_payne.spectrum_emulator import SpectrumEmulator
 from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
-from transformer_payne.integration import integrate_intensity
 from functools import partial
 import warnings
 import os
@@ -350,9 +349,18 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
 
         return parameters
     
+    @partial(jax.jit, static_argnums=(0, 3))
     def flux(self, log_wavelengths: ArrayLike, spectral_parameters: ArrayLike, mus_number: int = 10) -> ArrayLike:
-        func = integrate_intensity(self.intensity, mus_number)
-        return func(log_wavelengths, spectral_parameters)
+        roots, weights = np.polynomial.legendre.leggauss(mus_number)
+        roots = (roots + 1) / 2
+        weights /= 2
+        
+        roots, weights = jnp.array(roots), jnp.array(weights)
+        return 2*jnp.pi*jnp.sum(
+            jax.vmap(self.intensity, in_axes=(None, 0, None))(log_wavelengths, roots, spectral_parameters)*
+            roots[:, jnp.newaxis, jnp.newaxis]*weights[:, jnp.newaxis, jnp.newaxis],
+            axis=0
+        )
 
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
