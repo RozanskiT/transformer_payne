@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Union
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
-from transformer_payne.intensity_emulator import IntensityEmulator
+from transformer_payne.spectrum_emulator import SpectrumEmulator
 from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
 import warnings
@@ -93,7 +93,7 @@ class TransformerPayneModel(nn.Module):
         return x
 
 
-class TransformerPayne(IntensityEmulator[ArrayLike]):
+class TransformerPayne(SpectrumEmulator[ArrayLike]):
 
     def __init__(self, model_definition: ArchitectureDefinition):
         self.model_definition = model_definition
@@ -348,6 +348,19 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
                 warnings.warn(f"Parameter {elem} not an abundance parameter or not found in the model definition")
 
         return parameters
+    
+    @partial(jax.jit, static_argnums=(0, 3))
+    def flux(self, log_wavelengths: ArrayLike, spectral_parameters: ArrayLike, mus_number: int = 10) -> ArrayLike:
+        roots, weights = np.polynomial.legendre.leggauss(mus_number)
+        roots = (roots + 1) / 2
+        weights /= 2
+        
+        roots, weights = jnp.array(roots), jnp.array(weights)
+        return 2*jnp.pi*jnp.sum(
+            jax.vmap(self.intensity, in_axes=(None, 0, None))(log_wavelengths, roots, spectral_parameters)*
+            roots[:, jnp.newaxis, jnp.newaxis]*weights[:, jnp.newaxis, jnp.newaxis],
+            axis=0
+        )
 
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
