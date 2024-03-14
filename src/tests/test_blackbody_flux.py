@@ -1,11 +1,11 @@
-from transformer_payne.blackbody_flux import BlackbodyFlux
+from transformer_payne.blackbody import Blackbody
 import numpy as np
 import pytest
 
 
 @pytest.fixture
 def blackbody_flux_instance():
-    yield BlackbodyFlux()
+    yield Blackbody()
 
 class TestBlackbodyFlux:
     def test_is_in_bounds_under_lower(self, blackbody_flux_instance):

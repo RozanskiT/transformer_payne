@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Union
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
-from transformer_payne.intensity_emulator import IntensityEmulator
+from transformer_payne.spectrum_emulator import SpectrumEmulator
 from transformer_payne.configuration import REPOSITORY_ID_KEY, FILENAME_KEY
 from functools import partial
 import warnings
@@ -93,7 +93,7 @@ class TransformerPayneModel(nn.Module):
         return x
 
 
-class TransformerPayne(IntensityEmulator[ArrayLike]):
+class TransformerPayne(SpectrumEmulator[ArrayLike]):
 
     def __init__(self, model_definition: ArchitectureDefinition):
         self.model_definition = model_definition
@@ -349,6 +349,13 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
 
         return parameters
 
+    def flux(self, log_wavelengths: ArrayLike, spectral_parameters: ArrayLike, mus_number: int = 10) -> ArrayLike:
+        roots, weights = np.polynomial.legendre.leggauss(mus_number)
+        roots = (roots + 1) / 2
+        weights /= 2
+        return _flux(roots, weights, self.intensity, log_wavelengths, spectral_parameters)
+
+
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
     def intensity(self, log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
@@ -367,7 +374,17 @@ class TransformerPayne(IntensityEmulator[ArrayLike]):
     def __call__(self, log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
         return self.intensity(log_wavelengths, mu, spectral_parameters)
 
-# correct version
+
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def _flux(roots: ArrayLike, weights: ArrayLike, intensity_method: callable,
+          log_wavelengths: ArrayLike, spectral_parameters: ArrayLike):
+    roots, weights = jnp.array(roots), jnp.array(weights)
+    return 2*jnp.pi*jnp.sum(
+        jax.vmap(intensity_method, in_axes=(None, 0, None))(log_wavelengths, roots, spectral_parameters)*
+        roots[:, jnp.newaxis, jnp.newaxis]*weights[:, jnp.newaxis, jnp.newaxis],
+        axis=0
+    )
+
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
