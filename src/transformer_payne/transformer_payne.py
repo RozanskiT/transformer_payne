@@ -348,19 +348,13 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
                 warnings.warn(f"Parameter {elem} not an abundance parameter or not found in the model definition")
 
         return parameters
-    
-    @partial(jax.jit, static_argnums=(0, 3))
+
     def flux(self, log_wavelengths: ArrayLike, spectral_parameters: ArrayLike, mus_number: int = 10) -> ArrayLike:
         roots, weights = np.polynomial.legendre.leggauss(mus_number)
         roots = (roots + 1) / 2
         weights /= 2
-        
-        roots, weights = jnp.array(roots), jnp.array(weights)
-        return 2*jnp.pi*jnp.sum(
-            jax.vmap(self.intensity, in_axes=(None, 0, None))(log_wavelengths, roots, spectral_parameters)*
-            roots[:, jnp.newaxis, jnp.newaxis]*weights[:, jnp.newaxis, jnp.newaxis],
-            axis=0
-        )
+        return _flux(roots, weights, self.intensity, log_wavelengths, spectral_parameters)
+
 
     # https://jax.readthedocs.io/en/latest/faq.html#how-to-use-jit-with-methods
     # following an advice to create helper function that is to be jitted
@@ -380,7 +374,17 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
     def __call__(self, log_wavelengths: ArrayLike, mu: float, spectral_parameters: ArrayLike) -> ArrayLike:
         return self.intensity(log_wavelengths, mu, spectral_parameters)
 
-# correct version
+
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def _flux(roots: ArrayLike, weights: ArrayLike, intensity_method: callable,
+          log_wavelengths: ArrayLike, spectral_parameters: ArrayLike):
+    roots, weights = jnp.array(roots), jnp.array(weights)
+    return 2*jnp.pi*jnp.sum(
+        jax.vmap(intensity_method, in_axes=(None, 0, None))(log_wavelengths, roots, spectral_parameters)*
+        roots[:, jnp.newaxis, jnp.newaxis]*weights[:, jnp.newaxis, jnp.newaxis],
+        axis=0
+    )
+
 
 @partial(jax.jit, static_argnums=(0,))
 def _intensity(tp, log_wavelengths, mu, spectral_parameters):
