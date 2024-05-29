@@ -47,15 +47,15 @@ class Blackbody(SpectrumEmulator[ArrayLike]):
     
     @property
     def stellar_parameter_names(self) -> ArrayLike:
-        return self.parameter_names()
+        return self.parameter_names
     
     @property
     def min_stellar_parameters(self) -> ArrayLike:
-        return self.min_stellar_parameters()
+        return self.min_stellar_parameters
     
     @property
     def max_stellar_parameters(self) -> ArrayLike:
-        return self.max_stellar_parameters()
+        return self.max_stellar_parameters
     
     @staticmethod
     def is_in_bounds(parameters: ArrayLike) -> bool:
