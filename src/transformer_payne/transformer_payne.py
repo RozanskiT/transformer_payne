@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple, Callable
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
@@ -17,6 +17,7 @@ try:
     from jax.typing import ArrayLike
     import jax
     from flax import linen as nn
+    from flax.linen import initializers as init
     from flax.core.frozen_dict import freeze
     
 except ImportError:
@@ -24,72 +25,386 @@ except ImportError:
     from numpy.typing import ArrayLike
     warnings.warn("Please install JAX and Flax to use TransformerPayne.", JAXWarning)
 
-def frequency_encoding(x, min_period, max_period, dimension):
-    periods = jnp.logspace(jnp.log10(min_period), jnp.log10(max_period), num=dimension)
+_activation_functions_dict = {
+    'gelu': nn.gelu,
+    'relu': nn.relu,
+    'sigmoid': nn.sigmoid,
+    'linear': lambda x: x
+}
+
+def frequency_encoding(x, min_period, max_period, dimension, dtype=jnp.float64):
+    periods = jnp.logspace(jnp.log10(min_period), jnp.log10(max_period), num=dimension, dtype=dtype)
     
     y = jnp.sin(2*jnp.pi/periods*x)
     return y
 
-class TransformerPayneModelWave(nn.Module):
-    no_layer: int = 16
-    no_token: int = 16
-    d_att: int = 256
-    d_ff: int = 1024
-    no_head: int = 8
-    out_dimensionality: int = 2
+class ParametersEmbedding(nn.Module):
+    dim: int = 256
+    input_dim: int = 95
+    no_tokens: int = 16
+    use_bias: bool = False
+    activation_fn: Callable = nn.gelu
+    init_type: str = "si"  # "si" or "zero"
+    sigma: float = 1.0
+    alpha: float = 1.0
 
     @nn.compact
-    def __call__(self, x):
-        p, w = x
-        enc_w = frequency_encoding(w, min_period=1e-6, max_period=10, dimension=self.d_att)
-        enc_w = enc_w[None, ...]
-        p = nn.gelu(nn.Dense(4*self.d_att,name="encoder_0")(p))
-        p = nn.Dense(self.no_token*self.d_att, name="encoder_1")(p)
-        enc_p = jnp.reshape(p, (self.no_token, self.d_att))
+    def __call__(self, x, train):
+        dtype = x.dtype
+        input_dim = self.input_dim
+
+        # Choose initializer with axis adjustment
+        stddev_we0 = input_dim ** -0.5
+        stddev_we1 = self.dim ** -0.5
+        init_we0 = nn.initializers.truncated_normal(stddev = self.sigma * stddev_we0 / jnp.array(.87962566103423978, dtype))
+        init_we1 = {
+            "si": nn.initializers.truncated_normal(stddev = self.sigma * stddev_we1 / jnp.array(.87962566103423978, dtype)),
+            "zero": init.zeros,
+        }[self.init_type]
+        b_init = init.zeros
+
+        # Define weight matrices
+        w0 = self.param('we0', init_we0, (input_dim, self.dim), dtype=dtype)
+        w1 = self.param('we1', init_we1, (self.dim, self.no_tokens * self.dim), dtype=dtype)
+
+        if self.use_bias:
+            b0 = self.param('be0', b_init, (self.dim,), dtype=dtype)
+            b1 = self.param('be1', b_init, (self.no_tokens * self.dim,), dtype=dtype)
+
+        # First layer computation with jnp.einsum
+        p = jnp.einsum('...i,ij->...j', x, w0)
+        if self.use_bias:
+            p += b0
+        p = self.activation_fn(p)
+
+        # Second layer computation with jnp.einsum
+        p = jnp.einsum('...i,ij->...j', p, w1)
+        if self.use_bias:
+            p += b1
+
+        # Reshape output
+        p = jnp.reshape(p, (self.no_tokens, self.dim))
+        p = self.alpha * p
+        return p
+
+class FeedForward(nn.Module):
+    dim: int = 256
+    dim_ff_multiplier: int = 4
+    use_bias: bool = False
+    activation_fn: Callable = nn.gelu
+    init_type: str = "si"  # "si" or "vs"
+    sigma: float = 1.0
+
+    @nn.compact
+    def __call__(self, x, train):
+        dtype = x.dtype
+        input_dim = x.shape[-1]
+
+        # Choose initializer with axis adjustment
+        stddev_wfi = input_dim ** -0.5
+        stddev_wfo = (self.dim * self.dim_ff_multiplier) ** -0.5
+        init_wfi = nn.initializers.truncated_normal(stddev = self.sigma * stddev_wfi / jnp.array(.87962566103423978, dtype))
+        init_wfo = {
+            "si": nn.initializers.truncated_normal(stddev = self.sigma * stddev_wfo / jnp.array(.87962566103423978, dtype)),
+            "zero": init.zeros,
+        }[self.init_type]
+        b_init = init.zeros
+
+        # Define weight matrices
+        w0 = self.param('wfi', init_wfi, (input_dim, self.dim * self.dim_ff_multiplier), dtype=dtype)
+        w1 = self.param('wfo', init_wfo, (self.dim * self.dim_ff_multiplier, self.dim), dtype=dtype)
+
+        if self.use_bias:
+            b0 = self.param('bfi', b_init, (self.dim * self.dim_ff_multiplier,), dtype=dtype)
+            b1 = self.param('bfo', b_init, (self.dim,), dtype=dtype)
+
+        # First layer computation with jnp.einsum
+        x = jnp.einsum('...i,ij->...j', x, w0)
+        if self.use_bias:
+            x += b0
+        x = self.activation_fn(x)
+
+        # Second layer computation with jnp.einsum
+        x = jnp.einsum('...i,ij->...j', x, w1)
+        if self.use_bias:
+            x += b1
+        return x
+
+class PredictionHead(nn.Module):
+    dim: int = 256
+    out_dim: int = 1
+    use_bias: bool = False
+    activation_fn: Callable = nn.gelu
+    output_activation_fn: Callable = lambda x: x
+    init_type: str = "si"  # "si" or "zero"
+    sigma: float = 1.0
+
+    @nn.compact
+    def __call__(self, x, train):
+        dtype = x.dtype
+        input_dim = x.shape[-1]
+
+        # Choose initializer with axis adjustment
+        stddev_wp0 = input_dim ** -0.5
+        stddev_wp1 = self.dim ** -0.5
+        init_wp0 = nn.initializers.truncated_normal(stddev = self.sigma * stddev_wp0 / jnp.array(.87962566103423978, dtype))
+        init_wp1 = {
+            "si": nn.initializers.truncated_normal(stddev = self.sigma * stddev_wp1 / jnp.array(.87962566103423978, dtype)),
+            "zero": init.zeros,
+        }[self.init_type]
+        b_init = init.zeros
+
+        # Define weight matrices
+        w0 = self.param('wp0', init_wp0, (input_dim, self.dim), dtype=dtype)
+        w1 = self.param('wp1', init_wp1, (self.dim, self.out_dim), dtype=dtype)
+
+        if self.use_bias:
+            b0 = self.param('bp0', b_init, (self.dim,), dtype=dtype)
+            b1 = self.param('bp1', b_init, (self.out_dim,), dtype=dtype)
+
+        # First layer computation with jnp.einsum
+        x = jnp.einsum('...i,ij->...j', x, w0)
+        if self.use_bias:
+            x += b0
+        x = self.activation_fn(x)
+
+        # Second layer computation with jnp.einsum
+        x = jnp.einsum('...i,ij->...j', x, w1)
+        if self.use_bias:
+            x += b1
+
+        # Apply output activation function
+        output = self.output_activation_fn(x)
+        return output
+
+class MHA(nn.Module):
+    dim: int = 256
+    dim_head: int = 32
+    use_bias: bool = False
+    init_att_q: str = "si"  # "si" or "zero"
+    init_att_o: str = "si"  # "si" or "zero"
+    sigma: float = 1.0
+    alpha_att: float = 1.0
+
+    @nn.compact
+    def __call__(self, inputs_q, inputs_kv, train=True):
+        num_heads = self.dim // self.dim_head
+        dtype = inputs_q.dtype
         
+        # Choose initializer
+        stddev = self.dim ** -0.5
+        init_q = {
+            "si": nn.initializers.truncated_normal(stddev = self.sigma * stddev / jnp.array(.87962566103423978, dtype)), 
+            "zero": init.zeros,
+        }[self.init_att_q]
+        init_kv = nn.initializers.truncated_normal(stddev = self.sigma * stddev / jnp.array(.87962566103423978, dtype))
+        init_o = {
+            "si": nn.initializers.truncated_normal(stddev = self.sigma * stddev / jnp.array(.87962566103423978, dtype)),
+            "zero": init.zeros,
+        }[self.init_att_o]
+        b_init = init.zeros
+
+        # Define weight matrices with shapes that include num_heads and dim_head
+        w_q = self.param('w_q', init_q, (self.dim, num_heads, self.dim_head), dtype=dtype)
+        w_k = self.param('w_k', init_kv, (self.dim, num_heads, self.dim_head), dtype=dtype)
+        w_v = self.param('w_v', init_kv, (self.dim, num_heads, self.dim_head), dtype=dtype)
+        w_o = self.param('w_o', init_o, (num_heads, self.dim_head, self.dim), dtype=dtype)
+
+        if self.use_bias:
+            b_q = self.param('b_q', b_init, (num_heads, self.dim_head), dtype=dtype)
+            b_k = self.param('b_k', b_init, (num_heads, self.dim_head), dtype=dtype)
+            b_v = self.param('b_v', b_init, (num_heads, self.dim_head), dtype=dtype)
+            b_o = self.param('b_o', b_init, (self.dim,), dtype=dtype)
+
+        # Linear projections for queries
+        q = jnp.einsum('...li,ihd->...lhd', inputs_q, w_q)  # (..., seq_len_q, num_heads, dim_head)
+        k = jnp.einsum('...li,ihd->...lhd', inputs_kv, w_k)  # (..., seq_len_kv, num_heads, dim_head)
+        v = jnp.einsum('...li,ihd->...lhd', inputs_kv, w_v)  # (..., seq_len_kv, num_heads, dim_head)
+
+        if self.use_bias:
+            k += b_k
+            v += b_v
+            q += b_q 
+
+        # Scaled dot-product attention
+        scaling = 1 / jnp.sqrt(self.dim_head).astype(dtype)
+        attn_scores = jnp.einsum('...qhd,...khd->...hqk', q * scaling, k * scaling * self.alpha_att)  # (..., num_heads, seq_len_q, seq_len_kv)
+        # attn_scores = attn_scores * scaling
+        attn_weights = nn.softmax(attn_scores, axis=-1)
+
+        # Compute context vectors
+        context = jnp.einsum('...hqk,...khd->...qhd', attn_weights, v)  # (..., seq_len_q, num_heads, dim_head)
+
+        # Output projection
+        out = jnp.einsum('...lhd,hdm->...lm', context, w_o)  # (..., seq_len_q, dim)
+        if self.use_bias:
+            out += b_o
+
+        return out
+
+
+class TransformerPayneModelWave(nn.Module):
+    """Predicting on the single wave point."""
+    dim: int = 256
+    dim_ff_multiplier: int = 4
+    no_tokens: int = 16
+    no_layers: int = 16
+    dim_head: int = 32
+    out_dim: int = 1
+    input_dim: int = 95
+    min_period: float = 1e-6
+    max_period: float = 10
+    bias_dense: bool = False
+    bias_attention: bool = False
+    activation_fn: str = "gelu"
+    output_activation_fn: str = "linear"
+    init_att_q: str = "si"
+    init_att_o: str = "si"
+    emb_init: str = "si"
+    ff_init: str = "si"
+    head_init: str = "si"
+    sigma: float = 1.0
+    alpha_emb: float = 1.0
+    alpha_att: float = 1.0
+    reference_depth: int = None
+    reference_width: int = None
+
+    @nn.compact
+    def __call__(self, x, train=False):
+        atmospheric_parameters, wavelength = x
+
+        activation_fn = _activation_functions_dict[self.activation_fn]
+        output_activation_fn = _activation_functions_dict[self.output_activation_fn]
+
+        num_heads = self.dim // self.dim_head
+        residual_scaling = 1.0 if self.reference_depth is None else (self.no_layers / self.reference_depth)**(-0.5)
+
+        enc_w = frequency_encoding(
+            wavelength,
+            min_period=self.min_period,
+            max_period=self.max_period,
+            dimension=self.dim
+        )
+        # Make sure that from now on we are working with float32
+        enc_w = enc_w.astype(jnp.float32)
+        atmospheric_parameters = atmospheric_parameters.astype(jnp.float32)
+
+        enc_w = enc_w[None, ...]
+        enc_p = ParametersEmbedding(
+            dim=self.dim,
+            input_dim=self.input_dim,
+            no_tokens=self.no_tokens, 
+            activation_fn=activation_fn, 
+            use_bias=self.bias_dense,
+            init_type=self.emb_init,
+            sigma=self.sigma,
+            alpha=self.alpha_emb
+            )(atmospheric_parameters, train)
+
         # print(enc_p.shape, enc_w.shape)
         # [batch_sizes…, length, features]
-        x_pre = enc_w
-        x_post = enc_w
-        for i in range(self.no_layer):
+        x = enc_w
+
+        enc_p = nn.RMSNorm(name=f"norm_p", use_scale=False)(enc_p)
+        for i in range(self.no_layers):
             # MHA
-            _x = x_post + nn.MultiHeadDotProductAttention(num_heads=self.no_head,name=f"cond_mha_{i}")(inputs_q=x_post,
-                                                                inputs_kv=nn.LayerNorm(name=f"norm_0_L{i}")(enc_p))
-            x_pre = x_pre + _x
-            x_post = nn.LayerNorm(name=f"norm_1_L{i}")(_x)
+            _x = nn.RMSNorm(name=f"norm_1_L{i}", use_scale=False)(x)
+            _x = MHA(dim=self.dim, 
+                dim_head=self.dim_head, 
+                use_bias=self.bias_attention,
+                init_att_q=self.init_att_q,
+                init_att_o=self.init_att_o,
+                sigma=self.sigma,
+                alpha_att=self.alpha_att
+                )(inputs_q=_x, inputs_kv=enc_p)
+
+            x = x + residual_scaling * _x
             # MLP
-            _x = x_post + nn.Dense(self.d_att, name=f"cond_dense_1_L{i}")(nn.gelu(nn.Dense(self.d_ff, name=f"cond_dense_0_L{i}")(x_post)))
+            _x = nn.RMSNorm(name=f"norm_2_L{i}", use_scale=False)(x)
+            _x = FeedForward(dim=self.dim, 
+                dim_ff_multiplier=self.dim_ff_multiplier, 
+                activation_fn=activation_fn,
+                init_type=self.ff_init,
+                sigma=self.sigma
+                )(_x, train)
             
-            x_pre = x_pre + _x
-            x_post = nn.LayerNorm(name=f"norm_2_L{i}")(_x)
+            x = x + residual_scaling * _x
         
-        x_pre = nn.LayerNorm(name="decoder_norm")(x_pre)
-        x = x_pre + x_post
-        x = nn.gelu(nn.Dense(256, name="decoder_0")(x[0]))
-        x = nn.Dense(self.out_dimensionality, name="decoder_1")(x)
+        x = nn.RMSNorm(name="decoder_norm", use_scale=False)(x)
+        x = x[0]
+        x = PredictionHead(dim=self.dim, 
+            out_dim=self.out_dim, 
+            use_bias=self.bias_dense,
+            activation_fn=activation_fn, 
+            output_activation_fn=output_activation_fn,
+            init_type=self.head_init,
+            sigma=self.sigma
+            )(x, train)
         # ---
         x = x.at[1].set(10 ** x[1])
         x = x.at[0].set(x[0]*x[1])
         return x
     
 class TransformerPayneModel(nn.Module):
-    no_layer: int = 16
-    no_token: int = 16
-    d_att: int = 256
-    d_ff: int = 1024
-    no_head: int = 8
-    out_dimensionality: int = 2
+    dim: int = 256
+    dim_ff_multiplier: int = 4
+    no_tokens: int = 16
+    no_layers: int = 16
+    dim_head: int = 32
+    out_dim: int = 1
+    input_dim: int = 95
+    min_period: float = 1e-6
+    max_period: float = 10
+    bias_dense: bool = False
+    bias_attention: bool = False
+    activation_fn: str = "gelu"
+    output_activation_fn: str = "linear"
+    init_att_q: str = "si"
+    init_att_o: str = "si"
+    emb_init: str = "si"
+    ff_init: str = "si"
+    head_init: str = "si"
+    sigma: float = 1.0
+    alpha_emb: float = 1.0
+    alpha_att: float = 1.0
+    reference_depth: int = None
+    reference_width: int = None
 
     @nn.compact
     def __call__(self, inputs, train):
         log_waves, p  = inputs
-        DecManyWave = nn.vmap(
+
+        TP = nn.vmap(
                     TransformerPayneModelWave, 
                     in_axes=((None, 0),),out_axes=0,
                     variable_axes={'params': None}, 
                     split_rngs={'params': False})
         
-        x = DecManyWave(name="attention_emulator")((p, log_waves))
+        x = TP(name="transformer_payne", 
+                dim=self.dim, 
+                dim_ff_multiplier=self.dim_ff_multiplier, 
+                no_tokens=self.no_tokens, 
+                no_layers=self.no_layers, 
+                dim_head=self.dim_head, 
+                out_dim=self.out_dim,
+                input_dim=self.input_dim,
+                min_period=self.min_period, 
+                max_period=self.max_period,
+                bias_dense=self.bias_dense,
+                bias_attention=self.bias_attention,
+                activation_fn=self.activation_fn, 
+                output_activation_fn=self.output_activation_fn,
+                init_att_q=self.init_att_q,
+                init_att_o=self.init_att_o,
+                emb_init=self.emb_init,
+                ff_init=self.ff_init,
+                head_init=self.head_init,
+                sigma=self.sigma,
+                alpha_emb=self.alpha_emb,
+                alpha_att=self.alpha_att,
+                reference_depth=self.reference_depth,
+                reference_width=self.reference_width
+                )((p, log_waves))
         return x
 
 

@@ -8,15 +8,20 @@ Tomasz Różański, Yuan-Sen Ting and Maja Jabłońska, "Toward a Spectral Found
 
 ---
 
+Important note: The implementation of TransformerPayne in this repository includes slight modifications from the version described in the paper above. These changes involve most importantly the placement of residual connections and hyperparameter tuning. Detailed explanations will be provided in an upcoming paper.
+
 ## Example usage:
 ```
+import jax
+jax.config.update("jax_enable_x64", True)
+
 import transformer_payne as tp
 import numpy as np
 import matplotlib.pyplot as plt
 
 emulator = tp.TransformerPayne.download() # Download weights for default emulator
 
-wave = np.linspace(4800, 4900, 10000)
+wave = np.linspace(4670, 4960, 20000)
 mu = 1.0 # Ray perpendicular to solar surface
 parameters = emulator.solar_parameters # Pick solar parameters and abundances
 
@@ -68,7 +73,7 @@ pip install -e .[dev]
 
 ## Available Emulators
 
-### MARCS, Korg.jl and Kurucz's linelist - default intensity emulator
+### MARCS, Korg.jl and GALAH DR3's linelist - default intensity emulator
 This document outlines an emulator built upon the slightly adopted Korg.jl package and MARCS stellar atmosphere grid. It simulates stellar spectra across a broad parameter space:
 
 - Effective Temperature (Teff): 4000 - 8000 K
@@ -80,10 +85,10 @@ This document outlines an emulator built upon the slightly adopted Korg.jl packa
 - Elemental Abundances: Individual abundances can vary within a logarithmic range of ±0.3, from Helium to Uranium (with respect to given [Fe/H], [alpha/Fe] and [C/Fe])
 - Resolution: ~300000
 
-The emulator employs the latest Kurucz line list (gfall08oct17), covering a wavelength range of 3000 - 11000 angstroms. For more information, visit the following links:
+The emulator employs the GALAH DR3 linelist as included in Korg.jl code, covering four wavelength windows: 4670 - 4960, 5620 - 5920, 6420 - 6790, 7540 - 7940 angstroms. For more information, visit the following links:
 
 - Korg.jl: [link](https://github.com/ajwheeler/Korg.jl)
-- Kurucz Line Lists: [link](http://kurucz.harvard.edu/linelists.html)
+- GALAH DR3: [link](https://github.com/svenbuder/GALAH_DR3)
 - MARCS Grid: [link](https://dr17.sdss.org/sas/dr17/apogee/spectro/speclib/atmos/marcs/MARCS_v3_2016/Readme_MARCS_v3_2016.txt)
 
 ### Work in progress...
