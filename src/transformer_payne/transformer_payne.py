@@ -420,7 +420,7 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
             raise ValueError(f"Architecture {self.model_definition.architecture} not supported")
         
     @classmethod
-    def download(cls, cache_path: str = ".cache"):
+    def download(cls, cache_path: str = "~/.cache"):
         from dataclasses import asdict
         from transformer_payne.huggingface_config import HUGGINGFACE_CONFIG
         
