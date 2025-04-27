@@ -8,6 +8,7 @@ from functools import partial
 import warnings
 import os
 import numpy as np
+from pathlib import Path
 
 HF_CONFIG_NAME = "TPAYNE"
 ARCHITECTURE_NAME = "TransformerPayneIntensities"
@@ -420,13 +421,15 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
             raise ValueError(f"Architecture {self.model_definition.architecture} not supported")
         
     @classmethod
-    def download(cls, cache_path: str = "~/.cache"):
+    def download(cls, cache_path: str = "~/.cache/"):
         from dataclasses import asdict
         from transformer_payne.huggingface_config import HUGGINGFACE_CONFIG
         
         
         hf_config = HUGGINGFACE_CONFIG.get(HF_CONFIG_NAME)
         repository_id, filename = hf_config.get(REPOSITORY_ID_KEY), hf_config.get(FILENAME_KEY)
+
+        cache_path = Path(cache_path).expanduser()
 
         if os.path.isdir(cache_path):
             if os.path.isdir(os.path.join(cache_path, HF_CONFIG_NAME)):
