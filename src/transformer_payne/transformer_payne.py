@@ -551,7 +551,7 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
         Returns:
             List[str]: metal symbols
         """
-        return METALS
+        return METALS[:90]
     
     @property
     def metal_indices(self) -> Dict[str, int]:

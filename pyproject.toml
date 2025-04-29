@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "transformer_payne"
-version = "0.8"
+version = "0.8.1"
 readme = "README.md"
 dependencies = [
     "jax~=0.5.2",
