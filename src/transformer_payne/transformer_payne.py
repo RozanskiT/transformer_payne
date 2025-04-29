@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Union, Tuple, Callable
+from transformer_payne._utility import METALS
 from transformer_payne.architecture_definition import ArchitectureDefinition
 from transformer_payne.download import download_hf_model
 from transformer_payne.exceptions import JAXWarning
@@ -542,6 +543,24 @@ class TransformerPayne(SpectrumEmulator[ArrayLike]):
             ArrayLike:
         """
         return self.model_definition.solar_parameters[:-1]
+    
+    @property
+    def metals(self) -> List[str]:
+        """Symbols of the metals in the spectrum model
+
+        Returns:
+            List[str]: metal symbols
+        """
+        return METALS[:90]
+    
+    @property
+    def metal_indices(self) -> Dict[str, int]:
+        """Indices of the metals in the spectrum model
+
+        Returns:
+            Dict[str, int]: metal name to index
+        """
+        return {metal: i for i, metal in enumerate(self.metals)}
     
     def to_parameters(self, parameter_values: Dict[str, Any] = None, relative: bool = True) -> ArrayLike:
         """Convert passed values to the accepted parameters format
