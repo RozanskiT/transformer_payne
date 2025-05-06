@@ -54,11 +54,14 @@ plt.show()
 
 ### Installation using pip
 
-Install transformer-payne with `huggingface-hub` and `joblib` modules that allow you to easily download the model weights from the internet. Check that you are also having a `matplotlib` and `numpy` installed so you could run the example given above.
+Install transformer-payne along with the `huggingface-hub` and `joblib` modules, which enable easy downloading of model weights from the internet.  
+Make sure you also have `matplotlib` and `numpy` installed in order to run the example shown above.  
+If you plan to use the notebooks with additional examples located in the `tutorial/` directory, please also install `jupyterlab`, `notebook`, and `ipykernel`.
 
 ```
 pip install transformer-payne
 pip install huggingface-hub joblib numpy matplotlib
+pip install jupyterlab notebook ipykernel
 ```
 
 ### Developer installation from local repository
@@ -73,22 +76,26 @@ pip install -e .[dev]
 
 ## Available Emulators
 
-### MARCS, Korg.jl and GALAH DR3's linelist - default intensity emulator
-This document outlines an emulator built upon the slightly adopted Korg.jl package and MARCS stellar atmosphere grid. It simulates stellar spectra across a broad parameter space:
+### MARCS, Korg.jl and Kurucz's linelist - default intensity emulator
 
-- Effective Temperature (Teff): 4000 - 8000 K
+**Disclaimer**: This is an experimental version of the emulator. We do not recommend using it to infer atmospheric parameters of stars, as it currently has significant limitations. However, it is valuable for method development and benchmarking. We are actively working on a future release of emulators with well-understood and validated precision suitable for inference. If you have any questions, concerns, or are interested in developing an emulator for your own spectral grid (in intensity, fluxes, or potentially including Stokes parameters), please don’t hesitate to contact me.
+
+This document outlines an emulator built upon a slightly adapted version of the Korg.jl package and the MARCS stellar atmosphere grid. It simulates stellar spectra across a broad parameter space:
+
+- Effective Temperature (Teff): 4,000 - 8,000 K
 - Surface Gravity (logg): 2.0 - 5.0
 - Microturbulence (vmic): 0 - 5 km/s
 - Metallicity ([Fe/H]): -2.5 to 1.0
 - Alpha-element Enhancement ([alpha/Fe], ): -1.0 to 1.0
 - Carbon-to-Iron Ratio ([C/Fe]): -1.0 to 1.0
 - Elemental Abundances: Individual abundances can vary within a logarithmic range of ±0.3, from Helium to Uranium (with respect to given [Fe/H], [alpha/Fe] and [C/Fe])
-- Resolution: ~300000
+- Resolution: ~300,000
+- Wavelengths span: 1,500 to 20,000 angstroms
 
-The emulator employs the GALAH DR3 linelist as included in Korg.jl code, covering four wavelength windows: 4670 - 4960, 5620 - 5920, 6420 - 6790, 7540 - 7940 angstroms. For more information, visit the following links:
+The emulator employs the Kurucz's linelist `gfall08oct17.dat` in Korg.jl code. For more information, visit the following links:
 
 - Korg.jl: [link](https://github.com/ajwheeler/Korg.jl)
-- GALAH DR3: [link](https://github.com/svenbuder/GALAH_DR3)
+- Kurucz's linelist `gfall08oct17.dat`: [link](http://kurucz.harvard.edu/linelists/gfnew/)
 - MARCS Grid: [link](https://dr17.sdss.org/sas/dr17/apogee/spectro/speclib/atmos/marcs/MARCS_v3_2016/Readme_MARCS_v3_2016.txt)
 
 ### Work in progress...
